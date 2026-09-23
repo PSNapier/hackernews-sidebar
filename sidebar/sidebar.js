@@ -61,6 +61,8 @@ async function load() {
     const thread = buildThread(await response.json(), Date.now());
     renderHeader(thread);
     renderTree(thread);
+    // Threads open collapsed to top-level comments. Refreshes keep whatever the reader has opened since.
+    if (!hasTree && thread.comments.length > 0) toggleAll();
   } catch (error) {
     setStatus(`Could not load comments (${error.message}).${hasTree ? ' Showing the last loaded version.' : ''}`, 'error');
   } finally {
