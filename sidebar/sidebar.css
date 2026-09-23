@@ -1,0 +1,30 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #1b1b1d;
+  color: #d8d8d8;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+main {
+  padding: 16px;
+}
+
+.label {
+  margin: 0 0 4px;
+  color: #8a8a8a;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.item {
+  margin: 0;
+  color: #ff8c3a;
+  font-family: ui-monospace, monospace;
+}

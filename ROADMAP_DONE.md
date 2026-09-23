@@ -2,6 +2,60 @@
 
 <!-- Next task number: [007] -->
 
+## [003] Inject sidebar frame into bound tabs with push layout
+
+**Status:** `done`
+**Depends On:** [002]
+**Spec:** none
+
+### Goal
+
+Every tab bound to an HN thread shows an empty sidebar frame on the right, pushing the article over instead of covering it. The frame stays for every page the tab navigates to until the tab closes.
+
+### Scope
+
+- Service worker injects `content/inject.js` into bound tabs on each main frame load
+- `inject.js` adds a fixed-position iframe pointing at the extension's `sidebar/sidebar.html` and reserves its width on the page
+- Default width (for example 420px), read from `chrome.storage.local` so [005] can make it adjustable
+- Sidebar page is a dark placeholder that shows the bound item id
+- NOT in scope: comments ([004]), resize, collapse and hotkey ([005])
+
+### Technical Notes
+
+**User flows:**
+
+- **Reader:** an article tab opened from HN. A dark panel sits on the right. Clicking links inside the article keeps the panel.
+
+**Critical files:**
+
+- `background.js` - modify. `webNavigation.onCommitted` (frameId 0) looks up the tab map and calls `chrome.scripting.executeScript`.
+- `content/inject.js` (new) - builds the iframe and applies the push layout. Guards against double injection.
+- `sidebar/sidebar.html` (new) - extension page loaded in the iframe. Listed in `web_accessible_resources`. Styles and script in `sidebar/sidebar.css` and `sidebar/sidebar.js`.
+- `lib/layout.js` (new) - pure. Computes the style values for a given width and collapsed state.
+
+**Details:**
+
+- Isolation: the sidebar is an extension origin iframe, so page JS and CSS cannot read or style its contents (agreed)
+- The iframe gets only the item id, via `sidebar.html?item=<id>`. Never use `window.postMessage` with the host page. Use `chrome.runtime` messaging so the page can't spoof control messages
+- Push layout: `html { margin-right: <w>px !important }` plus iframe `position: fixed; top: 0; right: 0; height: 100vh; z-index: 2147483647`. Page elements with `position: fixed` will not shift. That's a known limitation, noted rather than solved
+- Injection timing (built): the service worker tries on `onCommitted`, on `onCompleted` (both frameId 0, http/https only) and straight after `bindTab`, since the first commit can fire before the binding exists. `executeScript` without `injectImmediately` waits for `document_idle`. `inject.js` sets a per-document guard before any `await` and resets it on failure so a later trigger can retry
+- Item id hand-off (built): `inject.js` sends `{ type: 'sidebar-item' }`. The service worker answers only for `sender.frameId === 0`, from its own tab map, so the page cannot supply the id
+- Iframe styles are applied with `!important` and include visibility, opacity and transform resets so page CSS cannot hide it. `lib/layout.js` holds all layout constants (`DEFAULT_WIDTH`, `RAIL_WIDTH`, `WIDTH_KEY = 'sidebarWidth'`, `FRAME_ID`)
+- Pages the extension can't script (`chrome://`, Web Store, PDF viewer) fail silently
+
+### Acceptance Criteria
+
+- [x] Layout values are computed for expanded and collapsed widths
+      `tests/layout.test.js::computes_push_margin`
+      `tests/layout.test.js::falls_back_to_default_width`
+- [x] Only bound tabs get injected
+      `tests/tab-map.test.js::lookup_returns_null_for_unbound_tab`
+- [ ] Sidebar appears on the right of an article opened from HN and the article text is not covered [MANUAL]
+- [ ] Following a link inside the article keeps the sidebar [MANUAL]
+- [ ] A tab not opened from HN never shows the sidebar [MANUAL]
+
+---
+
 ## [002] Intercept HN story links and bind tab to thread
 
 **Status:** `done`

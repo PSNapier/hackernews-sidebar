@@ -20,6 +20,10 @@
     {
       "resources": ["lib/*.js"],
       "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["sidebar/*"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
