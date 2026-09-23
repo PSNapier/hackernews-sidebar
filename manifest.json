@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "HN Sidebar",
+  "version": "0.1.0",
+  "description": "Read Hacker News comments in a sidebar next to the article.",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["storage", "scripting", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/*.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
