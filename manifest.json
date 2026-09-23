@@ -9,6 +9,13 @@
   },
   "permissions": ["storage", "scripting", "webNavigation"],
   "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://news.ycombinator.com/*"],
+      "js": ["content/hn-links.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": ["lib/*.js"],
