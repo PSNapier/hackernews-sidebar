@@ -1,5 +1,6 @@
 import { externalUrl } from './lib/story-links.js';
 import { bindTab, lookupTab, unbindTab } from './lib/tab-map.js';
+import { MODE_KEY, SPLIT, resolveMode, splitViewSupported } from './lib/open-mode.js';
 
 const WEB_PAGES = { url: [{ schemes: ['http', 'https'] }] };
 const SIDEBAR_PAGE = chrome.runtime.getURL('sidebar/sidebar.html');
@@ -53,15 +54,45 @@ chrome.webNavigation.onCompleted.addListener(({ tabId, frameId }) => {
 
 async function openBound({ url, itemId }, opener) {
   if (!externalUrl(url) || !/^\d+$/.test(itemId)) return;
-  const tab = await chrome.tabs.create({
+  const articleTab = await chrome.tabs.create({
     url,
     active: false,
     index: opener.index + 1,
     openerTabId: opener.id,
   });
-  await bindTab(chrome.storage.session, tab.id, itemId);
+  if ((await openMode()) === SPLIT && (await splitWithThread(articleTab, itemId))) return;
+  await bindAndInject(articleTab.id, itemId);
+}
+
+async function openMode() {
+  const stored = await chrome.storage.sync.get(MODE_KEY).catch(() => ({}));
+  return resolveMode(stored[MODE_KEY], splitViewSupported(chrome.tabs));
+}
+
+// Opens the real HN thread split with the article tab. Resolves false (and closes any orphan
+// thread tab) when the split fails, so the caller can fall back to the injected sidebar.
+async function splitWithThread(articleTab, itemId) {
+  let threadTab;
+  try {
+    threadTab = await chrome.tabs.create({
+      url: `https://news.ycombinator.com/item?id=${itemId}`,
+      active: false,
+      splitWithTabId: articleTab.id,
+    });
+    // A tab that opened but didn't join a split is treated as a failure too.
+    if (threadTab.splitViewId === undefined || threadTab.splitViewId === -1) throw new Error('tab not split');
+    return true;
+  } catch (error) {
+    console.warn('HN Sidebar: Split View failed, using the injected sidebar', error);
+    if (threadTab) await chrome.tabs.remove(threadTab.id).catch(() => {});
+    return false;
+  }
+}
+
+async function bindAndInject(tabId, itemId) {
+  await bindTab(chrome.storage.session, tabId, itemId);
   // The first commit may have fired before the binding existed.
-  injectIfBound(tab.id);
+  injectIfBound(tabId);
 }
 
 async function injectIfBound(tabId) {

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>HN Sidebar options</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1b1b1d;
+        --text: #d8d8d8;
+        --muted: #8a8a8a;
+        --line: #34343a;
+        --accent: #ff8c3a;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px 20px;
+        min-width: 320px;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.45 system-ui, sans-serif;
+      }
+
+      fieldset {
+        margin: 0;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+
+      legend {
+        padding: 0 6px;
+        font-weight: 600;
+      }
+
+      label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 0;
+      }
+
+      input[type='radio'] {
+        accent-color: var(--accent);
+      }
+
+      input:disabled + span {
+        color: var(--muted);
+      }
+
+      .note {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <fieldset>
+      <legend>Sidebar mode</legend>
+      <label><input type="radio" name="mode" value="injected" /><span>Injected sidebar</span></label>
+      <label><input type="radio" name="mode" value="split" /><span>Split View</span></label>
+      <p class="note" id="split-note" hidden>Split View needs a newer Brave (Chromium 155+).</p>
+    </fieldset>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
