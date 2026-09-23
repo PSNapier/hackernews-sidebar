@@ -4,56 +4,6 @@
 
 ---
 
-## [005] Sidebar resize, collapse and hotkey
-
-**Status:** `next`
-**Depends On:** [003]
-**Spec:** none
-
-### Goal
-
-The reader can drag the sidebar to any width (remembered across tabs and sessions), collapse it to a thin rail, and toggle it with `Alt+Shift+H`.
-
-### Scope
-
-- Drag handle on the sidebar's left edge. The width is saved to `chrome.storage.local` and applied to every sidebar
-- Collapse button that shrinks to a thin rail (about 24px) and releases the page margin. Clicking the rail expands it again
-- `commands` entry `toggle-sidebar` with the suggested key `Alt+Shift+H`, rebindable at `brave://extensions/shortcuts`
-- Min and max width clamps
-- NOT in scope: per-site width, remembering collapsed state per tab across restarts
-
-### Technical Notes
-
-**User flows:**
-
-- **Reader:** sidebar left edge. Drag to resize.
-- **Reader:** "Collapse" button in the sidebar header. Shrinks to a rail. Clicking the rail expands it.
-- **Reader:** `Alt+Shift+H` anywhere in a bound tab toggles collapse.
-
-**Critical files:**
-
-- `content/inject.js` - modify. Owns the drag handle (it lives in the host page, outside the iframe, so pointer events work across the page) and applies the width.
-- `lib/layout.js` - modify. Clamping and rail width.
-- `background.js` - modify. `chrome.commands.onCommand` sends a toggle to the active tab if it's bound.
-- `manifest.json` - modify. `commands` block.
-
-**Details:**
-
-- During a drag, put a transparent overlay over the iframe so it doesn't swallow `pointermove` events
-- Collapse from inside the iframe goes iframe → service worker → tab via `chrome.runtime` messaging (no `postMessage`)
-- `storage.onChanged` keeps open sidebars in sync when the width changes in another tab
-
-### Acceptance Criteria
-
-- [ ] Width is clamped between min and max
-      `tests/layout.test.js::clamps_width`
-- [ ] Collapsed state uses the rail width and releases the page margin
-      `tests/layout.test.js::collapsed_uses_rail_width`
-- [ ] Dragged width persists to a new article tab [MANUAL]
-- [ ] `Alt+Shift+H` toggles the sidebar in a bound tab and does nothing in other tabs [MANUAL]
-
----
-
 ## [006] Split View mode (spike, then settings option)
 
 **Status:** `blocked`

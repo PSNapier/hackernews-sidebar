@@ -2,6 +2,60 @@
 
 <!-- Next task number: [007] -->
 
+## [005] Sidebar resize, collapse and hotkey
+
+**Status:** `done`
+**Depends On:** [003]
+**Spec:** none
+
+### Goal
+
+The reader can drag the sidebar to any width (remembered across tabs and sessions), collapse it to a thin rail, and toggle it with `Alt+Shift+H`.
+
+### Scope
+
+- Drag handle on the sidebar's left edge. The width is saved to `chrome.storage.local` and applied to every sidebar
+- Collapse button that shrinks to a thin rail (about 24px) and releases the page margin. Clicking the rail expands it again
+- `commands` entry `toggle-sidebar` with the suggested key `Alt+Shift+H`, rebindable at `brave://extensions/shortcuts`
+- Min and max width clamps
+- NOT in scope: per-site width, remembering collapsed state per tab across restarts
+
+### Technical Notes
+
+**User flows:**
+
+- **Reader:** drag handle on the sidebar's left edge (tooltip "Drag to resize the sidebar"). Drag to resize between 280 and 900px.
+- **Reader:** "Collapse" button at the end of the sidebar header controls. Shrinks to a 24px rail showing "‹" and "HN". Clicking the rail ("Expand sidebar") expands it.
+- **Reader:** `Alt+Shift+H` anywhere in a bound tab toggles collapse.
+
+**Critical files:**
+
+- `content/inject.js` - modify. Owns the drag handle (it lives in the host page, outside the iframe, so pointer events work across the page) and applies the width.
+- `lib/layout.js` - modify. Clamping and rail width.
+- `background.js` - modify. `chrome.commands.onCommand` sends a toggle to the active tab if it's bound.
+- `manifest.json` - modify. `commands` block.
+
+**Details:**
+
+- During a drag, put a transparent overlay over the iframe so it doesn't swallow `pointermove` events
+- Collapse from inside the iframe goes iframe → service worker → tab via `chrome.runtime` messaging (no `postMessage`)
+- `storage.onChanged` keeps open sidebars in sync when the width changes in another tab
+- Built: `MIN_WIDTH = 280`, `MAX_WIDTH = 900` in `lib/layout.js`. At apply time the width is also capped at 80% of the window (never below 280) and re-applied on window resize. The width is saved on drag end only
+- Built collapse flow: sidebar sends `sidebar-collapse` → service worker (accepts only from our `sidebar/sidebar.html` in a bound tab) → `tabs.sendMessage` to `inject.js` in frame 0 → service worker broadcasts `runtime.sendMessage({ type: 'sidebar-state', tabId, collapsed })`, which the sidebar filters by its own tab id (from a `sidebar-tab` lookup). The hotkey uses the same relay with `{ toggle: true }`
+- Built: the sidebar switches between panel and rail with a CSS `@media (max-width: 48px)` rule on its own frame width, so a missed state message can never leave a cropped header
+- Collapsed state lives in memory in `inject.js`, so it resets to expanded when the tab navigates to a new page
+
+### Acceptance Criteria
+
+- [x] Width is clamped between min and max
+      `tests/layout.test.js::clamps_width`
+- [x] Collapsed state uses the rail width and releases the page margin
+      `tests/layout.test.js::collapsed_uses_rail_width`
+- [ ] Dragged width persists to a new article tab [MANUAL]
+- [ ] `Alt+Shift+H` toggles the sidebar in a bound tab and does nothing in other tabs [MANUAL]
+
+---
+
 ## [004] Render HN comments in the sidebar
 
 **Status:** `done`

@@ -2,6 +2,7 @@ import { externalUrl } from './lib/story-links.js';
 import { bindTab, lookupTab, unbindTab } from './lib/tab-map.js';
 
 const WEB_PAGES = { url: [{ schemes: ['http', 'https'] }] };
+const SIDEBAR_PAGE = chrome.runtime.getURL('sidebar/sidebar.html');
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'open' && sender.tab) {
@@ -15,6 +16,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  // Everything below is accepted only from our own sidebar page inside a tab (Collapse button, rail).
+  if (!fromSidebar(sender)) return;
+  if (message?.type === 'sidebar-collapse') {
+    setCollapsed(sender.tab.id, { collapsed: Boolean(message.collapsed) }).then(sendResponse);
+    return true;
+  }
+  // The sidebar asks which tab hosts it, to filter sidebar-state broadcasts.
+  if (message?.type === 'sidebar-tab') {
+    sendResponse(sender.tab.id);
+  }
+});
+
+function fromSidebar(sender) {
+  return sender.id === chrome.runtime.id && Boolean(sender.tab) && Boolean(sender.url?.startsWith(SIDEBAR_PAGE));
+}
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== 'toggle-sidebar') return;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id !== undefined) setCollapsed(tab.id, { toggle: true });
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -49,5 +70,22 @@ async function injectIfBound(tabId) {
     await chrome.scripting.executeScript({ target: { tabId }, files: ['content/inject.js'] });
   } catch {
     // Pages the extension can't script (chrome://, Web Store, PDF viewer, closed tabs) fail silently.
+  }
+}
+
+// inject.js in the tab's main frame owns the collapsed state. It applies the layout and replies with the
+// new state, which is broadcast to extension pages (sidebars filter by tab id).
+// Resolves to { collapsed } or null.
+async function setCollapsed(tabId, change) {
+  try {
+    if (!(await lookupTab(chrome.storage.session, tabId))) return null;
+    const state = await chrome.tabs.sendMessage(tabId, { type: 'sidebar-collapse', ...change }, { frameId: 0 });
+    if (typeof state?.collapsed !== 'boolean') return null;
+    // Rejects with "Receiving end does not exist" when no sidebar is listening. That's fine.
+    await chrome.runtime.sendMessage({ type: 'sidebar-state', tabId, collapsed: state.collapsed }).catch(() => {});
+    return { collapsed: state.collapsed };
+  } catch {
+    // No sidebar in the tab yet (still loading, or a page we can't script).
+    return null;
   }
 }

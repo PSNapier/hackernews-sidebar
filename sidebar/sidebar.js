@@ -12,7 +12,22 @@ const el = {
   refresh: document.getElementById('refresh'),
   status: document.getElementById('status'),
   tree: document.getElementById('tree'),
+  collapseSidebar: document.getElementById('collapse-sidebar'),
+  rail: document.getElementById('rail'),
 };
+
+// Collapse and expand go through the service worker to inject.js, which owns the state for this tab.
+el.collapseSidebar.addEventListener('click', () => requestCollapsed(true));
+el.rail.addEventListener('click', () => requestCollapsed(false));
+// State broadcasts reach every sidebar, so each one keeps only its own tab's. The id comes from the service
+// worker (sender.tab.id of this frame), since the page never learns it.
+const ownTab = chrome.runtime.sendMessage({ type: 'sidebar-tab' }).catch(() => null);
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (sender.id !== chrome.runtime.id || sender.tab || message?.type !== 'sidebar-state') return;
+  ownTab.then((tabId) => {
+    if (tabId !== null && message.tabId === tabId) showCollapsed(message.collapsed === true);
+  });
+});
 
 const rawId = new URLSearchParams(location.search).get('item') ?? '';
 const itemId = /^\d+$/.test(rawId) ? rawId : null;
@@ -170,6 +185,22 @@ function setToggle(toggle, expanded) {
   toggle.textContent = expanded ? '[-]' : '[+]';
   toggle.setAttribute('aria-expanded', String(expanded));
   toggle.setAttribute('aria-label', expanded ? 'Collapse thread' : 'Expand thread');
+}
+
+async function requestCollapsed(collapsed) {
+  try {
+    const state = await chrome.runtime.sendMessage({ type: 'sidebar-collapse', collapsed });
+    if (typeof state?.collapsed === 'boolean') showCollapsed(state.collapsed);
+  } catch {
+    // The service worker or the tab's content script is unavailable. Leave the view as it is.
+  }
+}
+
+// The CSS media query swaps panel and rail by frame width. This only keeps keyboard focus on a visible control.
+function showCollapsed(collapsed) {
+  document.body.classList.toggle('collapsed', collapsed);
+  if (!document.hasFocus()) return;
+  (collapsed ? el.rail : el.collapseSidebar).focus({ preventScroll: true });
 }
 
 function setStatus(message, kind = 'info') {
