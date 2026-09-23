@@ -7,10 +7,13 @@
   <script type="module" src="sidebar.js"></script>
 </head>
 <body>
-  <button id="rail" class="rail" type="button" title="Expand sidebar" aria-label="Expand sidebar">
-    <span class="rail-arrow" aria-hidden="true">‹</span>
-    <span class="rail-label" aria-hidden="true">HN</span>
-  </button>
+  <div class="rail">
+    <button id="rail-close" class="rail-close" type="button" title="Close sidebar" aria-label="Close sidebar">×</button>
+    <button id="rail" class="rail-expand" type="button" title="Expand sidebar" aria-label="Expand sidebar">
+      <span class="rail-arrow" aria-hidden="true">‹</span>
+      <span class="rail-label" aria-hidden="true">HN</span>
+    </button>
+  </div>
   <header class="story">
     <h1 class="story-title"><a id="title" target="_blank" rel="noopener noreferrer">Loading…</a></h1>
     <p class="story-meta">
@@ -21,6 +24,7 @@
       <button id="collapse-all" type="button" disabled>Collapse all</button>
       <button id="refresh" type="button" disabled>Refresh</button>
       <button id="collapse-sidebar" class="collapse-sidebar" type="button" title="Collapse sidebar">Collapse</button>
+      <button id="close-sidebar" type="button" title="Close sidebar" aria-label="Close sidebar">×</button>
     </div>
   </header>
   <main>

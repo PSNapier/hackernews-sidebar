@@ -14,11 +14,17 @@ const el = {
   tree: document.getElementById('tree'),
   collapseSidebar: document.getElementById('collapse-sidebar'),
   rail: document.getElementById('rail'),
+  closeSidebar: document.getElementById('close-sidebar'),
+  railClose: document.getElementById('rail-close'),
 };
 
 // Collapse and expand go through the service worker to inject.js, which owns the state for this tab.
 el.collapseSidebar.addEventListener('click', () => requestCollapsed(true));
 el.rail.addEventListener('click', () => requestCollapsed(false));
+// Close unbinds the tab and removes this frame, so nothing runs after it.
+for (const button of [el.closeSidebar, el.railClose]) {
+  button.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'sidebar-close' }).catch(() => {}));
+}
 // State broadcasts reach every sidebar, so each one keeps only its own tab's. The id comes from the service
 // worker (sender.tab.id of this frame), since the page never learns it.
 const ownTab = chrome.runtime.sendMessage({ type: 'sidebar-tab' }).catch(() => null);

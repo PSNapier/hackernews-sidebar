@@ -22,6 +22,8 @@
     const root = document.documentElement;
     if (!root || document.getElementById(FRAME_ID)) return;
 
+    // Saved so closing the sidebar can hand the page back its own inline margin.
+    const pageMargin = [root.style.getPropertyValue('margin-right'), root.style.getPropertyPriority('margin-right')];
     const stored = await chrome.storage.local.get(WIDTH_KEY);
     // Collapsed state lives only in this document. Width is shared through storage.
     let width = widthFrom(stored[WIDTH_KEY]);
@@ -64,21 +66,41 @@
 
     addEventListener('resize', apply);
 
-    chrome.storage.onChanged.addListener((changes, area) => {
+    chrome.storage.onChanged.addListener(onStorageChanged);
+    // Only the service worker talks to this listener (sender.tab is unset for it). It relays the sidebar's
+    // Collapse, Close and rail buttons and the Alt+Shift+H command, and forwards the reply to the sidebar frame.
+    chrome.runtime.onMessage.addListener(onMessage);
+
+    function onStorageChanged(changes, area) {
       if (area !== 'local' || !changes[WIDTH_KEY] || drag) return;
       width = widthFrom(changes[WIDTH_KEY].newValue);
       apply();
-    });
+    }
 
-    // Only the service worker talks to this listener (sender.tab is unset for it). It relays the sidebar's
-    // Collapse button, the rail and the Alt+Shift+H command, and forwards the reply to the sidebar frame.
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (sender.id !== chrome.runtime.id || sender.tab || message?.type !== 'sidebar-collapse') return;
+    function onMessage(message, sender, sendResponse) {
+      if (sender.id !== chrome.runtime.id || sender.tab) return;
+      if (message?.type === 'sidebar-close') {
+        close();
+        return;
+      }
+      if (message?.type !== 'sidebar-collapse') return;
       collapsed = message.toggle ? !collapsed : Boolean(message.collapsed);
       if (collapsed && drag) endDrag();
       apply();
       sendResponse({ collapsed });
-    });
+    }
+
+    function close() {
+      endDrag();
+      removeEventListener('resize', apply);
+      chrome.storage.onChanged.removeListener(onStorageChanged);
+      chrome.runtime.onMessage.removeListener(onMessage);
+      frame.remove();
+      handle.remove();
+      root.style.removeProperty('margin-right');
+      if (pageMargin[0]) root.style.setProperty('margin-right', ...pageMargin);
+      globalThis.hnSidebarInjected = false;
+    }
 
     function endDrag() {
       if (!drag) return;

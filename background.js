@@ -23,6 +23,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setCollapsed(sender.tab.id, { collapsed: Boolean(message.collapsed) }).then(sendResponse);
     return true;
   }
+  // Close unbinds first, so a reload or later navigation in this tab doesn't inject again.
+  if (message?.type === 'sidebar-close') {
+    closeSidebar(sender.tab.id);
+    return;
+  }
   // The sidebar asks which tab hosts it, to filter sidebar-state broadcasts.
   if (message?.type === 'sidebar-tab') {
     sendResponse(sender.tab.id);
@@ -101,6 +106,15 @@ async function injectIfBound(tabId) {
     await chrome.scripting.executeScript({ target: { tabId }, files: ['content/inject.js'] });
   } catch {
     // Pages the extension can't script (chrome://, Web Store, PDF viewer, closed tabs) fail silently.
+  }
+}
+
+async function closeSidebar(tabId) {
+  try {
+    await unbindTab(chrome.storage.session, tabId);
+    await chrome.tabs.sendMessage(tabId, { type: 'sidebar-close' }, { frameId: 0 });
+  } catch {
+    // The tab closed or navigated away. Unbinding is what matters.
   }
 }
 
