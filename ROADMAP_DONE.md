@@ -2,6 +2,75 @@
 
 <!-- Next task number: [007] -->
 
+## [004] Render HN comments in the sidebar
+
+**Status:** `done`
+**Depends On:** [003]
+**Spec:** none
+
+### Goal
+
+The sidebar shows the full HN thread for its bound item in a dark, readable, collapsible tree, with a story header and a refresh button.
+
+### Scope
+
+- Fetch `https://hn.algolia.com/api/v1/items/<id>` once on load (one request returns the whole tree)
+- Story header: title, points, comment count, age, and an "Open on HN" link to `https://news.ycombinator.com/item?id=<id>` (for voting and replying)
+- Comment tree: author, relative age, text, per-comment collapse toggle showing the hidden reply count
+- OP comments highlighted (comment author equals story author)
+- "Collapse all" toggle that reduces the view to top-level comments
+- "Refresh" button that refetches
+- Loading, empty and error states
+- Always dark theme
+- NOT in scope: voting, replying, auto-refresh, Dark Reader detection
+
+### Technical Notes
+
+**User flows:**
+
+- **Reader:** sidebar header in an article tab. Story title, points, comment count and age, with an "Open on HN" link to the real thread.
+- **Reader:** "[-]" / "[+]" toggle on each comment. Collapses that comment and shows "N hidden replies".
+- **Reader:** "Collapse all" button (becomes "Expand all"). Hides replies under every top-level comment.
+- **Reader:** "Refresh" button. Refetches the thread and keeps the current collapsed state.
+
+**Critical files:**
+
+- `sidebar/sidebar.html`, `sidebar/sidebar.js` (replace the [003] placeholder) - entry point. Fetches, renders and wires the controls.
+- `sidebar/sidebar.css` (replaces placeholder) - dark theme and tree indentation.
+- `lib/comments.js` (new) - pure. Turns the Algolia item into a view model: counts, OP flags, relative ages, drops deleted comments that have no children.
+- `lib/sanitize.js` (new) - allowlist sanitizer for comment HTML, with the parser injected.
+
+**Details:**
+
+- Algolia returns comment `text` as HTML. Sanitize to an allowlist (`p`, `a[href]`, `i`, `pre`, `code`) before inserting. Never assign raw API HTML to `innerHTML`
+- Links in comments open with `target="_blank" rel="noopener noreferrer"`
+- The extension page CSP already blocks inline script. Keep all JS in files
+- Deleted or dead comments that still have replies render as "[deleted]" so the tree stays intact
+- `sanitize.js` takes a parser argument so Node tests can pass a stub. The real sidebar passes `DOMParser`
+- Built: the sanitizer walks the parsed tree and rebuilds an HTML string from allowlisted tags and escaped text only. `script`, `style`, `iframe`, `svg` and similar are dropped with their content. Only http(s) hrefs survive
+- Built: deleted placeholders are not counted in totals or hidden-reply counts. Ages stay in days past 30 days
+- Built extras: author names link to their HN profile, each comment age links to that comment on HN, the header is sticky, top-level comments use `content-visibility: auto`. A 949-comment thread rendered in about 106 ms in a standalone page check
+- [005] adds its "Collapse" button inside `<div class="controls">` in `sidebar.html`
+
+### Acceptance Criteria
+
+- [x] View model counts total comments and replies per node
+      `tests/comments.test.js::counts_descendants`
+- [x] Comments by the story author are flagged as OP
+      `tests/comments.test.js::flags_op_comments`
+- [x] Deleted leaves are dropped and deleted parents are kept as placeholders
+      `tests/comments.test.js::handles_deleted_comments`
+- [x] Relative ages render as minutes, hours and days
+      `tests/comments.test.js::formats_relative_age`
+- [x] Disallowed tags and attributes are stripped from comment HTML
+      `tests/sanitize.test.js::strips_scripts_and_event_handlers`
+      `tests/sanitize.test.js::keeps_allowed_tags_and_hrefs`
+      `tests/sanitize.test.js::drops_unsafe_hrefs`
+- [ ] A 300+ comment thread renders and scrolls smoothly [MANUAL]
+- [ ] Collapse, collapse all and refresh work on a live thread [MANUAL]
+
+---
+
 ## [003] Inject sidebar frame into bound tabs with push layout
 
 **Status:** `done`

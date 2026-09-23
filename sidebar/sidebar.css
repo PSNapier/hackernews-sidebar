@@ -1,30 +1,208 @@
 :root {
   color-scheme: dark;
+  --bg: #1b1b1d;
+  --bg-raised: #232326;
+  --text: #d8d8d8;
+  --muted: #8a8a8a;
+  --line: #34343a;
+  --accent: #ff8c3a;
+  --link: #8cb4ff;
 }
 
 html,
 body {
   margin: 0;
-  height: 100%;
-  background: #1b1b1d;
-  color: #d8d8d8;
-  font: 14px/1.4 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, sans-serif;
+}
+
+a {
+  color: var(--link);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.story {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.story-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.story-title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.story-title a:hover {
+  text-decoration: underline;
+}
+
+.story-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hn-link {
+  color: var(--accent);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.controls button {
+  padding: 3px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.controls button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.controls button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 main {
-  padding: 16px;
+  padding: 10px 14px 40px;
 }
 
-.label {
-  margin: 0 0 4px;
-  color: #8a8a8a;
+.status {
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: #ff7b72;
+}
+
+.comment {
+  margin-top: 10px;
+}
+
+.tree > .comment {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+.comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  color: var(--muted);
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.item {
-  margin: 0;
-  color: #ff8c3a;
+.comment-head a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.comment-head a:hover {
+  text-decoration: underline;
+}
+
+.comment-head .author {
+  color: #b8b8b8;
+  font-weight: 600;
+}
+
+.toggle {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
   font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.toggle:hover {
+  color: var(--text);
+}
+
+.op-badge {
+  padding: 0 4px;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.comment.op > .comment-head .author {
+  color: var(--accent);
+}
+
+.comment.deleted > .comment-head .author {
+  font-style: italic;
+  font-weight: 400;
+}
+
+.hidden-count {
+  display: none;
+}
+
+.comment.collapsed > .comment-head .hidden-count,
+.comment.replies-hidden > .comment-head .hidden-count {
+  display: inline;
+}
+
+.comment.collapsed > .comment-body,
+.comment.collapsed > .replies,
+.comment.replies-hidden > .replies {
+  display: none;
+}
+
+.comment-body {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.comment-body p {
+  margin: 6px 0 0;
+}
+
+.comment-body pre {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  overflow-x: auto;
+  background: var(--bg-raised);
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: pre;
+}
+
+.comment-body code {
+  font-family: ui-monospace, monospace;
+}
+
+.replies {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
 }
